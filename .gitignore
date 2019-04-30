@@ -1,0 +1,11 @@
+/nodejs-complete-guide-rest-backend/node_modules
+/nodejs-complete-guide-rest-frontend/node_modules
+/nodejs-complete-guide-rest-backend/keys.js
+
+/.idea
+.DS_Store
+.env
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
