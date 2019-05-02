@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+<h3>home</h3>
+<input type="text" name="city" id="city" placeholder="city"><br/>
+<input type="file" name="myfile" id="myfile" multiple><br/><br/>
+<button onclick="send()">Send</button>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script>
+    const send = function () {
+        const city = document.getElementById('city').value;
+        const myfile = document.getElementById('myfile').files;
+
+        console.log('myfile:', myfile);
+
+        const formData = new FormData();
+        formData.append('city', city);
+
+        console.log(myfile.length);
+
+        for (let i = 0; i < myfile.length; i++) {
+            formData.append('myfile', myfile[i]);
+        }
+
+        console.log(formData.getAll('city'));
+        console.log(formData.getAll('myfile'));
+
+        const contentType = {
+            headers: {
+                'content-type': 'multipart/form-data'
+            }
+        };
+
+        axios.post('/upload', formData, contentType)
+                .then(function (response) {
+                    console.log(response);
+                })
+                .catch(function (error) {
+                    console.log(error);
+                });
+    }
+</script>
+</body>
+</html>
