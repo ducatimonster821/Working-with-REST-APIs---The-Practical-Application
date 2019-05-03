@@ -1,9 +1,31 @@
+const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 
 const { validationResult } = require('express-validator/check');
 
 const Post = require('../models/post');
+
+const getData = (req) => {
+    const storage = multer.diskStorage({
+        destination: function (req, file, cb) {
+            cb(null, 'images')
+        },
+        filename: function (req, file, cb) {
+            // cb(null, file.fieldname + '-' + Date.now())
+            cb(null, file.originalname)
+        }
+    });
+
+    const upload = multer({storage: storage}).single('image');
+
+    return upload;
+}
+
+const clearImage = filePath => {
+    filePath = path.join(__dirname, '..', filePath);
+    fs.unlink(filePath, err => console.log(err));
+};
 
 exports.getPosts = (req, res, next) => {
     // res.status(200).json({
@@ -39,37 +61,20 @@ exports.getPosts = (req, res, next) => {
 exports.createPost = (req, res, next) => {
     const errors = validationResult(req);
 
-    if (!errors.isEmpty()) {
-        const error = new Error('Validation failed, entered data is incorrect.');
-        error.statusCode = 422;
-        throw error;
+    // const storage = multer.diskStorage({
+    //     destination: function (req, file, cb) {
+    //         cb(null, 'images')
+    //     },
+    //     filename: function (req, file, cb) {
+    //         // cb(null, file.fieldname + '-' + Date.now())
+    //         cb(null, file.originalname)
+    //     }
+    // });
 
-        // return res.status(422).json({
-        //     message: 'Validation failed, entered data is incorrect.',
-        //     errors: errors.array()
-        // });
-    }
-
-    // if (!req.file) {
-    //     const error = new Error('No image provided.');
-    //     error.statusCode = 422;
-    //     throw error;
-    // }
-
-    const storage = multer.diskStorage({
-        destination: function (req, file, cb) {
-            cb(null, 'images')
-        },
-        filename: function (req, file, cb) {
-            // cb(null, file.fieldname + '-' + Date.now())
-            // cb(null, file.originalname)
-            // cb(null, new Date().toISOString() + '-' + file.originalname);
-            cb(null, file.originalname + '-' + Date.now())
-        }
-    });
-
-    const upload = multer({storage: storage}).single('image');
+    // const upload = multer({storage: storage}).single('image');
     // const upload = multer({storage: storage}).array('image', 4);
+
+    const upload = getData(req);
 
     upload(req, res, function (err) {
         if (err) {
@@ -126,6 +131,26 @@ exports.createPost = (req, res, next) => {
         // Everything went fine.
     });
 
+    // console.log('req:', req);
+    console.log('req.body:', req.body); // {}
+
+    // if (!errors.isEmpty()) {
+    //     const error = new Error('Validation failed, entered data is incorrect.');
+    //     error.statusCode = 422;
+    //     throw error;
+    //
+    //     // return res.status(422).json({
+    //     //     message: 'Validation failed, entered data is incorrect.',
+    //     //     errors: errors.array()
+    //     // });
+    // }
+
+    // if (!req.file) {
+    //     const error = new Error('No image provided.');
+    //     error.statusCode = 422;
+    //     throw error;
+    // }
+
     // const imageUrl = req.file.path;
     // const title = req.body.title;
     // const content = req.body.content;
@@ -171,7 +196,6 @@ exports.createPost = (req, res, next) => {
     //     });
 };
 
-
 exports.getPost = (req, res, next) => {
     const postId = req.params.postId;
     console.log(postId);
@@ -193,4 +217,69 @@ exports.getPost = (req, res, next) => {
             }
             next(err);
         });
+};
+
+exports.updatePost = (req, res, next) => {
+    const postId = req.params.postId;
+
+    const upload = getData(req);
+
+    upload(req, res, function (err) {
+        if (err) {
+            // A Multer error occurred when uploading.
+            console.log('err', err);
+            res.send({"ret": "err"});
+            return;
+        }
+
+        const image = req.file;
+        // if (image.path) {
+        //
+        // }
+        const imageUrl = image.path.replace(/\\/g, "/");
+        const title = req.body.title;
+        const content = req.body.content;
+
+        // console.log('----------------------------------------');
+        // console.log('postId:', postId);
+        // console.log('imageUrl:', imageUrl);
+        // console.log('title:', title);
+        // console.log('content:', content);
+        // console.log('----------------------------------------');
+
+        Post.findById(postId)
+            .then(post => {
+                if (!post) {
+                    const error = new Error('Could not find post.');
+                    error.statusCode = 404;
+                    throw error;
+                }
+
+                // const clearImage = filePath => {
+                //     filePath = path.join(__dirname, '..', filePath);
+                //     fs.unlink(filePath, err => console.log(err));
+                // };
+
+                // if (imageUrl !== post.imageUrl) {
+                //     clearImage(post.imageUrl);
+                // }
+
+                console.log('imageUrl:', imageUrl);
+                console.log('post.imageUrl:', post.imageUrl);
+
+                post.title = title;
+                post.imageUrl = imageUrl;
+                post.content = content;
+                return post.save();
+            })
+            .then(result => {
+                res.status(200).json({ message: 'Post updated!', post: result });
+            })
+            .catch(err => {
+                if (!err.statusCode) {
+                    err.statusCode = 500;
+                }
+                next(err);
+            });
+    });
 };
