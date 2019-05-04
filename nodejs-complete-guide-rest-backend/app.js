@@ -1,7 +1,6 @@
 const path = require('path');
 
-const express = require('express');
-const hbs = require('hbs');
+const express = require('express')
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
@@ -9,45 +8,11 @@ const mongoose = require('mongoose');
 const keys = require('./keys');
 
 const feedRoutes = require('./routes/feed');
+const authRoutes = require('./routes/auth');
 
 const app = express();
 
-// app.set('view engine', 'hbs');
-
 app.use(cors());
-
-// app.get('/home', (req, res) => {
-//     // res.send({"ret": "success"});
-//     res.render('home.hbs');
-// });
-
-// app.post('/upload', (req, res) => {
-//     const storage = multer.diskStorage({
-//         destination: function (req, file, cb) {
-//             cb(null, __dirname + '/images')
-//         },
-//         filename: function (req, file, cb) {
-//             // cb(null, file.fieldname + '-' + Date.now())
-//             cb(null, file.originalname)
-//         }
-//     });
-//
-//     // const upload = multer({storage: storage}).single('avatar');
-//     const upload = multer({storage: storage}).array('myfile', 4);
-//
-//     upload(req, res, function (err) {
-//         if (err) {
-//             // A Multer error occurred when uploading.
-//             console.log('err', err);
-//             res.send({"ret": "err"});
-//             return;
-//         }
-//         console.log('files', req.files);
-//         console.log('body', req.body);
-//         res.send({"ret": "success"});
-//         // Everything went fine.
-//     });
-// });
 
 // const fileStorage = multer.diskStorage({
 //     destination: (req, file, cb) => {
@@ -85,13 +50,16 @@ app.use((req, res, next) => {
 });
 
 app.use('/feed', feedRoutes);
+app.use('/auth', authRoutes);
 
 app.use((error, req, res, next) => {
     console.log(error);
     const status = error.statusCode || 500;
     const message = error.message;
+    const data = error.data;
     res.status(status).json({
-        message: message
+        message: message,
+        data: data
     });
 });
 

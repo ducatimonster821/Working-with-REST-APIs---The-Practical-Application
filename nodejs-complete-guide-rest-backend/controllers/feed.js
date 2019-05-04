@@ -43,7 +43,7 @@ exports.getPosts = (req, res, next) => {
     //     ]
     // });
 
-    console.log('req.query:', req.query);
+    // console.log('req.query:', req.query);
 
     const currentPage = req.query.page || 1;
     const perPage = 2;
