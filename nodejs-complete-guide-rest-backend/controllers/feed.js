@@ -5,6 +5,7 @@ const multer = require('multer');
 const {validationResult} = require('express-validator/check');
 
 const Post = require('../models/post');
+const User = require('../models/user');
 
 const getData = (req) => {
     const storage = multer.diskStorage({
@@ -98,9 +99,9 @@ exports.createPost = (req, res, next) => {
             res.send({"ret": "err"});
             return;
         }
-        console.log('files', req.files);
-        console.log('file', req.file);
-        console.log('body', req.body);
+        // console.log('files', req.files);
+        // console.log('file', req.file);
+        // console.log('body', req.body);
 
         const image = req.file;
 
@@ -109,22 +110,20 @@ exports.createPost = (req, res, next) => {
         const title = req.body.title;
         const content = req.body.content;
 
-        console.log('----------------------------------------');
-        console.log('imageUrl:', imageUrl);
-        console.log('title:', title);
-        console.log('content:', content);
-        console.log('----------------------------------------');
+        // console.log('----------------------------------------');
+        // console.log('imageUrl:', imageUrl);
+        // console.log('title:', title);
+        // console.log('content:', content);
+        // console.log('----------------------------------------');
 
         const post = new Post({
             title: title,
             content: content,
             imageUrl: imageUrl, // 'images/showcase.jpg' // imageUrl
-            creator: {
-                name: 'author'
-            }
+            creator: req.userId
         });
 
-        console.log('post:', post);
+        // console.log('post:', post);
 
         post.save()
             .then(result => {
@@ -145,9 +144,6 @@ exports.createPost = (req, res, next) => {
         // res.send({"ret": "success"});
         // Everything went fine.
     });
-
-    // console.log('req:', req);
-    console.log('req.body:', req.body); // {}
 
     // if (!errors.isEmpty()) {
     //     const error = new Error('Validation failed, entered data is incorrect.');
@@ -213,7 +209,8 @@ exports.createPost = (req, res, next) => {
 
 exports.getPost = (req, res, next) => {
     const postId = req.params.postId;
-    console.log(postId);
+    // console.log(postId);
+
     Post.findById(postId)
         .then(post => {
             if (!post) {
@@ -248,25 +245,21 @@ exports.updatePost = (req, res, next) => {
         }
 
         const image = req.file;
-        // if (image.path) {
-        //
-        // }
         const imageUrl = image.path.replace(/\\/g, "/");
         const title = req.body.title;
         const content = req.body.content;
-
-        // console.log('----------------------------------------');
-        // console.log('postId:', postId);
-        // console.log('imageUrl:', imageUrl);
-        // console.log('title:', title);
-        // console.log('content:', content);
-        // console.log('----------------------------------------');
 
         Post.findById(postId)
             .then(post => {
                 if (!post) {
                     const error = new Error('Could not find post.');
                     error.statusCode = 404;
+                    throw error;
+                }
+
+                if (post.creator.toString() !== req.userId) {
+                    const error = new Error('Not authorized!');
+                    error.statusCode = 403;
                     throw error;
                 }
 
@@ -301,6 +294,7 @@ exports.updatePost = (req, res, next) => {
 
 exports.deletePost = (req, res, next) => {
     const postId = req.params.postId;
+    
     Post.findById(postId)
         .then(post => {
             if (!post) {
@@ -308,12 +302,24 @@ exports.deletePost = (req, res, next) => {
                 error.statusCode = 404;
                 throw error;
             }
+            if (post.creator.toString() !== req.userId) {
+                const error = new Error('Not authorized!');
+                error.statusCode = 403;
+                throw error;
+            }
             // Check logged in user
             clearImage(post.imageUrl);
             return Post.findByIdAndRemove(postId);
         })
         .then(result => {
-            console.log(result);
+            console.log('req.userId:', req.userId);
+            return User.findById(req.userId);
+        })
+        .then(user => {
+            user.posts.pull(postId);
+            return user.save();
+        })
+        .then(result => {
             res.status(200).json({message: 'Deleted post.'});
         })
         .catch(err => {
